@@ -21,7 +21,7 @@ func Main() {
 	isLocalDatabase := len(os.Args) > 1 && os.Args[1] == "local"
 	svc := openDatabase(isLocalDatabase)
 	// If we are using a local DB, we create the table from this program, as there is no GUI for the local dynamoDB.
-	// If we are using a real dynamoDB the table should be created via the consol, since programs should not really
+	// If we are using a real dynamoDB the table should be created via the console, since programs should not really
 	// have rights to manipulate the database schema
 	if isLocalDatabase && !contains(listTables(svc), "Accounts") {
 		createTable(svc)
@@ -31,6 +31,9 @@ func Main() {
 	findAccount(svc, "Foo")
 	acc = &Account{Name: "Fum", Key: "654321", Description: "My seccond account"}
 	insertAccount(svc, acc)
+	listAccounts(svc)
+	deleteAccount(svc, "Foo")
+	deleteAccount(svc, "Fum")
 	listAccounts(svc)
 }
 
@@ -140,6 +143,14 @@ func listAccounts(svc *dynamodb.DynamoDB) []*Account {
 	return accounts
 }
 
+func deleteAccount(svc *dynamodb.DynamoDB, name string)  {
+	params := &dynamodb.DeleteItemInput{
+		TableName: aws.String("Accounts"),
+		Key: map[string]*dynamodb.AttributeValue{"AccountName": {S: aws.String(name)}},
+	}
+	_, err := svc.DeleteItem(params)
+	panicOnError(err)
+}
 
 func panicOnError(e error) {
 	if e != nil {
