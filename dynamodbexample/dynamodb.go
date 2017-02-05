@@ -29,6 +29,9 @@ func Main() {
 	acc := &Account{Name: "Foo", Key: "123456", Description: "My first account"}
 	insertAccount(svc, acc)
 	findAccount(svc, "Foo")
+	acc = &Account{Name: "Fum", Key: "654321", Description: "My seccond account"}
+	insertAccount(svc, acc)
+	listAccounts(svc)
 }
 
 func openDatabase(localDB bool) *dynamodb.DynamoDB {
@@ -112,11 +115,31 @@ func findAccount(svc *dynamodb.DynamoDB, name string) *Account {
 		acc := &Account{}
 		e := dynamodbattribute.Unmarshal(resp.Items[0]["Data"].M["object"], acc)
 		panicOnError(e)
-		fmt.Printf("Find Account: %v", acc)
+		fmt.Printf("Find Account: %v\n", acc)
 		return acc
 	}
 	return nil
 }
+
+func listAccounts(svc *dynamodb.DynamoDB) []*Account {
+	params := &dynamodb.ScanInput{
+		TableName: aws.String("Accounts"),
+		ConsistentRead:      aws.Bool(true),
+		Limit:                  aws.Int64(100),
+	}
+	resp, err := svc.Scan(params)
+	panicOnError(err)
+	accounts := make([]*Account, 0, int(*resp.Count))
+	for _,row := range resp.Items {
+		acc := &Account{}
+		e := dynamodbattribute.Unmarshal(row["Data"].M["object"], acc)
+		panicOnError(e)
+		accounts = append(accounts, acc)
+		fmt.Printf("List Account: %v\n", acc)
+	}
+	return accounts
+}
+
 
 func panicOnError(e error) {
 	if e != nil {
